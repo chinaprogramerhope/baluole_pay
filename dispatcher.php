@@ -5,6 +5,7 @@
  * Date: 18-10-7
  * Time: 下午3:36
  */
+date_default_timezone_set('Asia/shanghai');
 
 require 'autoload.php';
 
@@ -13,16 +14,26 @@ $ret = [ // 返回值标准格式, 支持只返回其中一个
     'data' => []
 ];
 
-if (!isset($_POST['svc']) || !isset($_POST['func'])) {
-    Log::error(basename(__FILE__) . ', ' . __LINE__ . ', invalid param, param = ' . json_encode($_POST));
+if (!isset($_REQUEST['svc']) || !isset($_REQUEST['func'])) {
+    Log::error(basename(__FILE__) . ', ' . __LINE__ . ', invalid param, param = ' . json_encode($_REQUEST));
     $ret['errCode'] = conErrorCode::ERR_CLIENT;
     echo json_encode($ret);
     ob_flush();
     exit();
 }
-$_POST['param'] = isset($_POST['param']) ? $_POST['param'] : $_POST['param'];
 
-$ret = (new $_POST['svc'])->{$_POST['func']}($_POST['param']);
+if (isset($_REQUEST['param']) && !is_array($_REQUEST['param'])) {
+    Log::error(basename(__FILE__) . ', ' . __LINE__ . ', invalid param, param is not array, 
+        param = ' . json_encode($_REQUEST));
+    $ret['errCode'] = conErrorCode::ERR_CLIENT;
+    echo json_encode($ret);
+    ob_flush();
+    exit();
+}
+
+$_REQUEST['param'] = isset($_REQUEST['param']) ? $_REQUEST['param'] : $_REQUEST['param'];
+
+$ret = (new $_REQUEST['svc'])->{$_REQUEST['func']}($_REQUEST['param']);
 
 if (!is_array($ret)) {
     if (is_int($ret)) { // 只返回errCode
@@ -37,49 +48,34 @@ if (!is_array($ret)) {
         ];
     }
 
+    Log::debug(basename(__FILE__) . ', ' . __LINE__ . ', ret = ' . json_encode($ret));
+
     echo json_encode($ret);
     ob_flush();
     exit();
 }
 
-if (!isset($ret['errCode'])) {
-    if (isset($ret['data']) && is_array($ret['data'])) { // 只返回data
+if (!isset($ret['errCode'])) { // errCode和data都没返回
+    if (empty($ret) || !is_array($ret)) {
+        $ret = [
+            'errCode' => conErrorCode::ERR_SERVER,
+            'data' => []
+        ];
+    } else {
         $data = $ret;
         $ret = [
             'errCode' => conErrorCode::ERR_OK,
             'data' => $data
         ];
-    } else {
-        Log::error(basename(__FILE__) . ', ' . __LINE__ . ', server return is wrong, ret = ' . json_encode($ret));
-        $ret = [
-            'errCode' => conErrorCode::ERR_SERVER,
-            'data' => []
-        ];
     }
 
+    Log::debug(basename(__FILE__) . ', ' . __LINE__ . ', ret = ' . json_encode($ret));
     echo json_encode($ret);
     ob_flush();
     exit();
 }
 
-if (!isset($ret['errCode']) && !isset($ret['data'])) { // errCode和data都没返回
-    Log::error(__FILE__ . ', ' . __LINE__ . ', server return is wrong, ret = ' . json_encode($ret));
-
-    $ret = [
-        'errCode' => conErrorCode::ERR_SERVER,
-        'data' => []
-    ];
-}
-
-if (!is_int($ret['errCode']) || !is_array($ret['data'])) { // 返回了errCode和data但类型错误
-    Log::error(__FILE__ . ', ' . __LINE__ . ', server return is wrong, ret = ' . var_dump($ret));
-
-    $ret = [
-        'errCode' => conErrorCode::ERR_SERVER,
-        'data' => []
-    ];
-}
-
+Log::debug(basename(__FILE__) . ', ' . __LINE__ . ', ret = ' . json_encode($ret));
 echo json_encode($ret);
 ob_flush();
 exit();

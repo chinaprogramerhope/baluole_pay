@@ -10,6 +10,7 @@ spl_autoload_register(function ($className) {
         '',
         'class',
         'config',
+        'dao',
         'service',
         'tool',
     ];

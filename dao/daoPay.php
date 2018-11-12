@@ -108,4 +108,41 @@ class daoPay {
             return conErrorCode::ERR_MYSQL_EXCEPTION;
         }
     }
+
+    /**
+     * 获取订单
+     * @param $ali
+     * @param $orderStatus
+     * @param $payTime
+     * @param $money
+     * @param $activeTime
+     * @return array|int
+     */
+    public static function getOrder($ali, $orderStatus, $payTime, $money, $activeTime) {
+        $pdo = clsMysql::getInstance();
+        if (null === $pdo) {
+            Log::error(__METHOD__ . ', ' . __LINE__ . ', mysql connect fail');
+            return conErrorCode::ERR_MYSQL_CONNECT_FAIL;
+        }
+
+        try { // todo limit 1
+            $sql = 'select Account, OrderStatus, ApplyDate, OrderID, UserID, ServerID from';
+            $sql .= ' jj_payorder where AliPay = :AliPay and OrderStatus = :OrderStatus and decMoney = :decMoney';
+            $sql .= ' and timestampdiff(second, ApplyDate, :PayDate) < :activeTime';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':AliPay' => $ali,
+                ':OrderStatus' => $orderStatus,
+                ':decMoney' => $money,
+                ':PayDate' => $payTime,
+                ':activeTime' => $activeTime
+            ]);
+            $rows = $stmt->fetchAll();
+            // todo 格式化返回值
+            return $rows;
+        } catch (PDOException $e) {
+            Log::error(__METHOD__ . ', ' . __LINE__ . ', mysql exception: ' . $e->getMessage());
+            return conErrorCode::ERR_MYSQL_EXCEPTION;
+        }
+    }
 }

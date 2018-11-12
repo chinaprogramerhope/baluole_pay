@@ -7,7 +7,7 @@
  *
  * http
  */
-class Http {
+class http {
     // todo 保证返回类型是[]
     public static function curlPost($url, $param) {
         $ch = curl_init();
