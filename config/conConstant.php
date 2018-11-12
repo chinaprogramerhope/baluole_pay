@@ -8,9 +8,9 @@
 
 class conConstant {
     // mysql连接配置
-    const mysql_dsn = 'mysql:dbname=hxl_game;host=127.0.0.1';
-    const mysql_user = 'root';
-    const mysql_password = 'toor';
+    const mysql_dsn = 'mysql:dbname=payment;host=192.168.1.119';
+    const mysql_user = 'RoamGame';
+    const mysql_password = 'Xmpx3hTpYujflCgbRkJV1';
 
     // redis连接配置
     const redis_ip = '127.0.0.1';

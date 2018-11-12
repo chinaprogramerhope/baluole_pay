@@ -5,14 +5,18 @@
  * Date: 18-10-7
  * Time: 下午4:27
  */
-require '../class/clsTest.php';
 
-$a = [
-    'svc' => 'clsTest',
-    'func' => 'test1',
-    'param' => 'ok11'
+require_once '../tool/Http.php';
+
+$url = 'http://192.168.1.202:8888/';
+$param = [
+    'svc' => 'svcPay',
+    'func' => 'createOrder',
+    'param' => [
+        'serverid' => 1,
+        'account' => 'ok1',
+        'amount' => 100
+    ]
 ];
 
-echo 1 . "\n";
-(new $a['svc']())->{$a['func']}($a['param']);
-echo 2 . "\n";
+Http::curlPost($url, $param);
