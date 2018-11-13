@@ -128,7 +128,6 @@ class daoPay {
         try { // todo limit 1
             $sql = 'select Account, OrderStatus, ApplyDate, OrderID, UserID, ServerID from';
             $sql .= ' jj_payorder where AliPay = :AliPay and OrderStatus = :OrderStatus and decMoney = :decMoney';
-            $sql .= ' and timestampdiff(second, ApplyDate, :PayDate) < :activeTime';
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':AliPay' => $ali,
