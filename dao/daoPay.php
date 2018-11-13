@@ -113,12 +113,10 @@ class daoPay {
      * 获取订单
      * @param $ali
      * @param $orderStatus
-     * @param $payTime
      * @param $money
-     * @param $activeTime
      * @return array|int
      */
-    public static function getOrder($ali, $orderStatus, $payTime, $money, $activeTime) {
+    public static function getOrder($ali, $orderStatus, $money) {
         $pdo = clsMysql::getInstance();
         if (null === $pdo) {
             Log::error(__METHOD__ . ', ' . __LINE__ . ', mysql connect fail');
@@ -128,15 +126,15 @@ class daoPay {
         try { // todo limit 1
             $sql = 'select Account, OrderStatus, ApplyDate, OrderID, UserID, ServerID from';
             $sql .= ' jj_payorder where AliPay = :AliPay and OrderStatus = :OrderStatus and decMoney = :decMoney';
-            $sql .= ' and timestampdiff(second, ApplyDate, :PayDate) < :activeTime';
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':AliPay' => $ali,
                 ':OrderStatus' => $orderStatus,
-                ':decMoney' => $money,
-                ':PayDate' => $payTime,
-                ':activeTime' => $activeTime
+                ':decMoney' => $money
             ]);
+            // test
+            Log::pay('ok11, sql = ' . $sql . ', ali = ' . $ali . ', orderStatus = ' . $orderStatus
+                . ', money = ' . $money);
             $rows = $stmt->fetchAll();
             // todo 格式化返回值
             return $rows;

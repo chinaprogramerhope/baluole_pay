@@ -15,7 +15,7 @@ class svcPay {
     public function createOrder($param) {
         if (!isset($param['account']) || !isset($param['amount'])
             || !isset($param['serverid'])) {
-            Log::error(__METHOD__ . ' invalid param');
+            Log::pay(__METHOD__ . ' invalid param');
             return conErrorCode::ERR_INVALID_PARAM;
         }
 
@@ -31,20 +31,20 @@ class svcPay {
      * @return int
      */
     public function callback($param) {
-        Log::info(__METHOD__ . ', ' . __LINE__ . ', param = ' . json_encode($param));
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', param = ' . json_encode($param));
 
         if (!isset($param['content']) || !isset($param['Ali'])
             || !isset($param['ServerID'])) {
-            Log::error(__METHOD__ . ' invalid param');
+            Log::pay(__METHOD__ . ' invalid param');
             return conErrorCode::ERR_INVALID_PARAM;
         }
 
         $ali = $param['Ali'];
         $serverId = $param['ServerID'];
-        $bills = json_decode($param['content'], true);
+        $bills = $param['content'];
 
         if (!is_array($bills)) {
-            Log::error(__METHOD__ . ', ' . __LINE__ . ', invalid param, content wrong, '
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', invalid param, content wrong, '
                 . ' type of content = ' . gettype($param['content'])
                 . ', content = ' . $param['content']);
         }
