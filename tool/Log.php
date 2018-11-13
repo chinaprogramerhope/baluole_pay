@@ -33,6 +33,11 @@ class Log {
 //        self::writeFile('fatal', $content);
 //    }
 
+    // 支付日志
+    public static function pay($content) {
+        self::writeFile('pay', $content);
+    }
+
     private static function writeFile($level, $content) {
 //        $logDir = '/home/game_server/log/'; // notice: 运行php的用户必须对要写入的目录有写权限 架构
         // test

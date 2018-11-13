@@ -51,7 +51,7 @@ class clsPay {
         $index = array_rand($aliArr, 1);
         $aliAddress = $aliArr[$index]['Ali'];
         $moneyNow = $aliArr[0]['Money']; // todo 为什么是0 不是index; 转为float
-        Log::info(__METHOD__ . ', 获得支付宝账号: ' . $aliAddress . ', 余额: ' . $moneyNow);
+        Log::pay(__METHOD__ . ', 获得支付宝账号: ' . $aliAddress . ', 余额: ' . $moneyNow);
 
         // 获取金额
 //        $amount = getPayDec($amount); // todo
@@ -60,7 +60,7 @@ class clsPay {
         $payUrlArr = daoPay::getPayUrl($aliAddress, $amount); // todo 获取一条记录
 //        $payUrl = '';
 //        header('Location: ' . $payUrlArr); todo
-        Log::info(__METHOD__ . ', payUrl: ' . $payUrlArr);
+        Log::pay(__METHOD__ . ', payUrl: ' . $payUrlArr);
 
         // 生成订单id
         $orderId = self::getOrderIdByPrefix('JJ');
@@ -81,59 +81,61 @@ class clsPay {
      * @return bool
      */
     public static function callback($serverId, $ali, $bills) {
-        Log::info(__METHOD__ . ', ' . __LINE__ . ', bills数量 = ' . count($bills));
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', bills数量 = ' . count($bills));
 
-        foreach ($bills as $k => $bill) { // todo 感觉这里原逻辑不顺畅啊
+        foreach ($bills as $k => $bill) { // todo 感觉这里原逻辑不顺畅啊, 为什么不传过来订单id
             $payTime = $bill['time'];
             $money = $bill['money'];
 
-            Log::info(__METHOD__ . ', ' . __LINE__ . ', 编号 = ' . $k
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', 编号 = ' . $k
                 . ', payTime = ' . $payTime . ', money = ' . $money);
 
             $activeTime = 480; // 新订单有效时间480妙
             $orderStatus = 0;
-            $orders = daoPay::getOrder($ali, $orderStatus, $payTime, $money, $activeTime);
+            $orders = daoPay::getOrder($ali, $orderStatus, $money);
             if (empty($orders)) {
-                Log::error(__METHOD__ . ', ' . __LINE__ . ', 没有数据, 编号 = ' . $k);
+                Log::pay(__METHOD__ . ', ' . __LINE__ . ', 没有数据, 编号 = ' . $k);
                 continue;
             }
 
             // 获取订单参数
-            Log::info(__METHOD__ . ', ' . __LINE__ . ', 存在订单数据, 开始获取参数');
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', 存在订单数据, 开始获取参数');
 
-            $order = $orders[0]; // todo orders应该要json_decode()； 为何多个只取第一个
-            $applyTime = $order['applyDate'];
+            // test todo
+            $order = end($orders);
+//            $order = $orders[0]; // todo orders应该要json_decode()； 为何多个只取第一个, 这样第一个时间匹配不上就永远无法成功
+            $applyTime = $order['ApplyDate'];
             $orderId = $order['OrderID'];
             $userId = $order['UserID'];
             $account = $order['Account'];
             $serverId = $order['ServerID'];
-            $decMoney = $order['decMoney'];
 
-            Log::info(__METHOD__ . ', ' . __LINE__ . ', 有数据, 编号: ' . $k
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', 有数据, 编号: ' . $k
                 . ', order = ' . json_encode($order));
 
-            // 检测money
-            if ($money != $decMoney) {
-                Log::error(__METHOD__ . ', ' . __LINE__ . ', money wrong, paramMoney = '
-                    . $money . ', dbMoney = ' . $decMoney);
-                return false;
+            // 检测支付时间
+            $applyTs = strtotime($applyTime);
+            if ($payTime - $applyTs > $activeTime) {
+                Log::pay(__METHOD__ . ', ' . __LINE__ . ', pay too late, applyTime = '
+                    . $applyTime . ', payTime = ' . date('Y-m-d H:i:s', $payTime));
+                continue;
             }
 
             // 加金币
-            $gold = intval($decMoney * 100); // todo 钱换算金币规则
+            $gold = intval($money * 100); // todo 钱换算金币规则
             if (!self::addGold($userId, $gold)) {
-                Log::error(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
+                Log::pay(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
                     . $userId . ', gold = ' . $gold);
                 continue;
             }
 
             // 更新订单状态 todo 确定在加金币后吗
             if (daoPay::updateOrder($orderId, $orderStatus, $payTime) !== true) {
-                Log::error(__METHOD__ . ', ' . __LINE__ . ', updateOrder fail, order = ' . json_encode($order));
+                Log::pay(__METHOD__ . ', ' . __LINE__ . ', updateOrder fail, order = ' . json_encode($order));
                 continue;
             }
 
-            Log::info(__METHOD__ . ', ' . __LINE__ . ', updateOrder success!! orderId = '
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', updateOrder success!! orderId = '
                 . $orderId . ', orderStatus = ' . $orderStatus . ', payTime = ' . $payTime);
         }
     }
@@ -165,11 +167,11 @@ class clsPay {
         $orderStatus = intval($order['OrderStatus']);
         if ($orderStatus !== 0) {
             if ($orderStatus === 1) {
-                Log::info(__METHOD__ . ', ' . __LINE__ . ', order state success, 
+                Log::pay(__METHOD__ . ', ' . __LINE__ . ', order state success, 
                     orderId = ' . $orderId . ', order = ' . json_encode($order));
                 return true;
             } else {
-                Log::info(__METHOD__ . ', ' . __FILE__ . ', order state error, orderId = '
+                Log::pay(__METHOD__ . ', ' . __FILE__ . ', order state error, orderId = '
                     . $orderId . ', order = ' . json_encode($order));
                 return false;
             }
@@ -179,19 +181,19 @@ class clsPay {
         $gold = intval($order['decMoney'] * 100); // todo 钱换算金币规则
         $userId = $order['UserID'];
         if (!self::addGold($userId, $gold, $order['game_code'])) { // todo smc_order没有game_code字段
-            Log::error(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
                 . $userId . ', gold = ' . $gold);
             return false;
         }
 
-        Log::info(__METHOD__ . ', ' . __LINE__ . ', scoreOperation success!! userId = '
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', scoreOperation success!! userId = '
             . $userId . ', gold = ' . $gold);
 
 //        // 更新后台订单表
 //        $status = 1;
 //        $paySuccessTime = time();
 //        if (!self::updateSmcOrder($status, $paySuccessTime)) {
-//            Log::error(__METHOD__ . ', ' . __LINE__ . ', updateSmcOrder fail, status = '
+//            Log::pay(__METHOD__ . ', ' . __LINE__ . ', updateSmcOrder fail, status = '
 //                . $status . ', paySuccessTime = ' . $paySuccessTime);
 //            return false;
 //        }
@@ -201,7 +203,7 @@ class clsPay {
 //        if (!empty($userDbIndex)) {
 //            self::insertSmcPayMail();
 //        } else {
-//            Log::error(__METHOD__ . ', ' . __LINE__ . ', userDbIndex empty, userId = ' . $userId);
+//            Log::pay(__METHOD__ . ', ' . __LINE__ . ', userDbIndex empty, userId = ' . $userId);
 //        }
 //
 //        // 更新总支付金额 todo 原代码是更新redis  合适吗
@@ -245,27 +247,50 @@ class clsPay {
             $dataTmp['password'] = $rowTmp['password'];
             $dataTmp['money'] = $gold;
             $flagTmp = $db->insert('smc_pay_uemail', $dataTmp);
-            Log::info(__METHOD__ . ', ' . __LINE__ . ", flagTmp=$flagTmp,dataTmp=" . json_encode($dataTmp));
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ", flagTmp=$flagTmp,dataTmp=" . json_encode($dataTmp));
         }
     }
 
     public static function addGold($userId, $gold, $gameCode = '999990') {
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok11');
         $gameCode = '999990';
         $scoreoper = new GameServerMiddleLayerServerScoreOperation();
+
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok111');
         $scoreoper->set_userid($userId);
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok112');
         $scoreoper->set_score($gold);
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok113');
         $scoreoper->set_gameCode($gameCode);
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok114');
         $scoreoper->set_addtype(self::enumAddScoreType_UserBuy); // todo
+
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok12');
 
         $buf = $scoreoper->SerializeToString();
 
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok13');
+
         $ret = self::requestMidlayerRes($buf, self::DISPATCH_COMMAND, self::DISPATCH_SERVER_IP, self::DISPATCH_SERVER_PORT);
+
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok14');
 
         $rsp = new GameServerMiddleLayerServerScoreOperationRsp();
         $rsp->ParseFromString($ret);
 
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok15');
+
         $r = $rsp->returncode() === self::enumResultSucc ? true : false;
-        Log::info(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s')
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s')
             . '--' . $userId . '--' . $gold . ': returncode:' . $rsp->returncode() . "\n");
         return $r;
     }
@@ -300,7 +325,7 @@ class clsPay {
         $conn = socket_connect($socket, $host, $port);
 
         if (!$conn) {
-            Log::info(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s connect'));
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s connect'));
             return false;
         }
 
@@ -315,7 +340,7 @@ class clsPay {
         if (strlen($read_length) <= 0) {
             $errorcode = socket_last_error();
             $errormsg = socket_strerror($errorcode);
-            Log::info(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s length'));
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s length'));
             return false;
         }
 

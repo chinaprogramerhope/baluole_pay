@@ -74,7 +74,8 @@ class GameServerMiddleLayerServerScoreOperation extends PBMessage {
     }
 
     function set_addtype($value) {
-        return $this->_set_value("5", $value);
+        $this->_set_value("5", $value);
+//        return $this->_set_value("5", $value);
     }
 
     function ipAddress() {
