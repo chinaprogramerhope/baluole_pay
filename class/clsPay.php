@@ -14,7 +14,7 @@
 
 class clsPay {
     const DISPATCH_COMMAND = 60002; // todo
-    const DISPATCH_SERVER_IP = '192.168.111.2';
+    const DISPATCH_SERVER_IP = '192.168.1.219';
     const DISPATCH_SERVER_PORT = 10004;
 
     const enumAddScoreType_TableReward = 1;
@@ -68,13 +68,13 @@ class clsPay {
         // 生成订单
         $timeNow = date('Y-m-d H:i:s');
         $orderStatus = 0;
-        $userId = 0; // todo delay 目前userId和gameId赋默认值
+        $userId = 102453; // todo delay 目前userId和gameId赋默认值
         $gameId = 0;
         return daoPay::insertOrder($orderId, $userId, $gameId, $account, $amount, $serverId, $aliAddress, $timeNow, $orderStatus);
     }
 
     /**
-     * 回调 todo serverId没用啊
+     * 回调
      * @param $serverId
      * @param $ali
      * @param $bills
@@ -83,7 +83,7 @@ class clsPay {
     public static function callback($serverId, $ali, $bills) {
         Log::pay(__METHOD__ . ', ' . __LINE__ . ', bills数量 = ' . count($bills));
 
-        foreach ($bills as $k => $bill) { // todo 感觉这里原逻辑不顺畅啊, 为什么不传过来订单id
+        foreach ($bills as $k => $bill) {
             $payTime = $bill['time'];
             $money = $bill['money'];
 
@@ -92,7 +92,7 @@ class clsPay {
 
             $activeTime = 480; // 新订单有效时间480妙
             $orderStatus = 0;
-            $orders = daoPay::getOrder($ali, $orderStatus, $money);
+            $orders = daoPay::getOrder($ali, $orderStatus, $money); // notice 服务端认为实际上不会有多条
             if (empty($orders)) {
                 Log::pay(__METHOD__ . ', ' . __LINE__ . ', 没有数据, 编号 = ' . $k);
                 continue;
@@ -101,9 +101,9 @@ class clsPay {
             // 获取订单参数
             Log::pay(__METHOD__ . ', ' . __LINE__ . ', 存在订单数据, 开始获取参数');
 
-            // test todo
+            // test todo 测试时取最新的一条
             $order = end($orders);
-//            $order = $orders[0]; // todo orders应该要json_decode()； 为何多个只取第一个, 这样第一个时间匹配不上就永远无法成功
+//            $order = $orders[0];
             $applyTime = $order['ApplyDate'];
             $orderId = $order['OrderID'];
             $userId = $order['UserID'];
@@ -122,14 +122,17 @@ class clsPay {
             }
 
             // 加金币
-            $gold = intval($money * 100); // todo 钱换算金币规则
+            $gold = ceil($money); // todo 测试期间1：1
             if (!self::addGold($userId, $gold)) {
                 Log::pay(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
                     . $userId . ', gold = ' . $gold);
                 continue;
             }
 
-            // 更新订单状态 todo 确定在加金币后吗
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', addGold success!! orderId = ' . $orderId
+                . ', userId = ' . $userId . ', gold = ' . $gold);
+
+            // 更新订单状态
             if (daoPay::updateOrder($orderId, $orderStatus, $payTime) !== true) {
                 Log::pay(__METHOD__ . ', ' . __LINE__ . ', updateOrder fail, order = ' . json_encode($order));
                 continue;
@@ -252,26 +255,12 @@ class clsPay {
     }
 
     public static function addGold($userId, $gold, $gameCode = '999990') {
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok11');
         $gameCode = '999990';
         $scoreoper = new GameServerMiddleLayerServerScoreOperation();
-
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok111');
         $scoreoper->set_userid($userId);
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok112');
         $scoreoper->set_score($gold);
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok113');
         $scoreoper->set_gameCode($gameCode);
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok114');
         $scoreoper->set_addtype(self::enumAddScoreType_UserBuy); // todo
-
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok12');
 
         $buf = $scoreoper->SerializeToString();
 
@@ -325,22 +314,22 @@ class clsPay {
         $conn = socket_connect($socket, $host, $port);
 
         if (!$conn) {
-            Log::pay(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s connect'));
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', socket_connect fail, host = '
+                . $host . ', port = ' . $port);
             return false;
         }
 
         socket_write($socket, $request_stream);
 
-        if (!$conn) {
-            return false;
-        }
-
         $read_length = socket_read($socket, 4);
+        // test
+        Log::pay('ok30, read_length = ' . $read_length);
 
         if (strlen($read_length) <= 0) {
             $errorcode = socket_last_error();
             $errormsg = socket_strerror($errorcode);
-            Log::pay(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s length'));
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', errcode = ' . $errorcode
+                . ', errmsg = ' . $errormsg);
             return false;
         }
 
@@ -354,6 +343,8 @@ class clsPay {
         $ret = $response_pack->serialized();
         socket_close($socket);
 
+        // test
+        Log::pay('ok31, ret = ' . json_encode($ret));
         return $ret;
     }
 
