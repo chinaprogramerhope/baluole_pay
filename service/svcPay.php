@@ -25,7 +25,14 @@ class svcPay {
         return clsPay::createOrder($serverId, $account, $amount);
     }
 
+    /**
+     * 支付回调 - 游戏服务端回调php后台
+     * @param $param
+     * @return int
+     */
     public function callback($param) {
+        Log::info(__METHOD__ . ', ' . __LINE__ . ', param = ' . json_encode($param));
+
         if (!isset($param['content']) || !isset($param['Ali'])
             || !isset($param['ServerID'])) {
             Log::error(__METHOD__ . ' invalid param');
@@ -42,6 +49,7 @@ class svcPay {
                 . ', content = ' . $param['content']);
         }
 
-        return clsPay::callback($serverId, $ali, $bills);
+        clsPay::callback($serverId, $ali, $bills);
+        return conErrorCode::ERR_OK;
     }
 }
