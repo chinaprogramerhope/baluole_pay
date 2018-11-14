@@ -13,6 +13,9 @@
  */
 
 class clsPay {
+    const ORDER_STATUS_NEW = 0; // 新订单
+    const ORDER_STATUS_PAY = 1; // 已支付订单
+
     const DISPATCH_COMMAND = 60002; // todo
     const DISPATCH_SERVER_IP = '192.168.1.219';
     const DISPATCH_SERVER_PORT = 10004;
@@ -77,10 +80,10 @@ class clsPay {
 
         // 生成订单
         $timeNow = date('Y-m-d H:i:s');
-        $orderStatus = 0;
         $userId = 102453; // todo 测试时userId和gameId赋默认值
         $gameId = 0;
-        return daoPay::insertOrder($orderId, $userId, $gameId, $account, $amount, $serverId, $ali, $timeNow, $orderStatus);
+        return daoPay::insertOrder($orderId, $userId, $gameId, $account, $amount, $serverId, $ali,
+            $timeNow, self::ORDER_STATUS_NEW);
     }
 
     /**
@@ -97,18 +100,19 @@ class clsPay {
             $money = $bill['money'];
 
             Log::pay(__METHOD__ . ', ' . __LINE__ . ', 编号 = ' . $k
-                . ', payTime = ' . $payTime . ', money = ' . $money);
+                . ', bill = ' . json_encode($bill));
 
             $activeTime = 480; // 新订单有效时间480妙
-            $orderStatus = 0;
-            $orders = daoPay::getOrder($ali, $orderStatus, $money); // notice 服务端认为实际上不会有多条
+            $orders = daoPay::getOrder($ali, self::ORDER_STATUS_NEW, $money); // notice 服务端认为实际上不会有多条
             if (empty($orders)) {
-                Log::pay(__METHOD__ . ', ' . __LINE__ . ', 没有数据, 编号 = ' . $k);
+                Log::pay(__METHOD__ . ', ' . __LINE__ . ', 没有数据, 编号 = ' . $k
+                    . ', bill = ' . json_encode($bill));
                 continue;
             }
 
             // 获取订单参数
-            Log::pay(__METHOD__ . ', ' . __LINE__ . ', 存在订单数据, 开始获取参数');
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', 存在订单数据, 开始获取参数. k = ' . $k
+                . ', bill = ' . json_encode($bill));
 
             // test todo 测试时取最新的一条
             $order = end($orders);
@@ -142,13 +146,14 @@ class clsPay {
                 . ', userId = ' . $userId . ', gold = ' . $gold);
 
             // 更新订单状态
-            if (daoPay::updateOrder($orderId, $orderStatus, $payTime) !== true) {
+            $payTime = date('Y-m-d H:i:s', $payTime);
+            if (daoPay::updateOrder($orderId, self::ORDER_STATUS_PAY, $payTime) !== true) {
                 Log::pay(__METHOD__ . ', ' . __LINE__ . ', updateOrder fail, order = ' . json_encode($order));
                 continue;
             }
 
             Log::pay(__METHOD__ . ', ' . __LINE__ . ', updateOrder success!! orderId = '
-                . $orderId . ', orderStatus = ' . $orderStatus . ', payTime = ' . $payTime);
+                . $orderId . ', orderStatus = ' . self::ORDER_STATUS_PAY . ', payTime = ' . $payTime);
         }
     }
 
@@ -337,6 +342,8 @@ class clsPay {
         socket_write($socket, $request_stream);
 
         $read_length = socket_read($socket, 4);
+
+        // test
         Log::pay('ok30, read_length = ' . json_encode($read_length));
 
         if (strlen($read_length) <= 0) {

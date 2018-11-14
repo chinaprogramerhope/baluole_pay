@@ -123,7 +123,7 @@ class daoPay {
             return conErrorCode::ERR_MYSQL_CONNECT_FAIL;
         }
 
-        try { // todo limit 1
+        try {
             $sql = 'select Account, OrderStatus, ApplyDate, OrderID, UserID, ServerID from';
             $sql .= ' jj_payorder where AliPay = :AliPay and OrderStatus = :OrderStatus and decMoney = :decMoney';
             $stmt = $pdo->prepare($sql);
@@ -132,9 +132,10 @@ class daoPay {
                 ':OrderStatus' => $orderStatus,
                 ':decMoney' => $money
             ]);
-            // test
-            Log::pay('ok11, sql = ' . $sql . ', ali = ' . $ali . ', orderStatus = ' . $orderStatus
-                . ', money = ' . $money);
+
+//            Log::debug('ok11, sql = ' . $sql . ', ali = ' . $ali . ', orderStatus = ' . $orderStatus
+//                . ', money = ' . $money);
+
             $rows = $stmt->fetchAll();
             // todo 格式化返回值
             return $rows;
@@ -158,11 +159,7 @@ class daoPay {
             return conErrorCode::ERR_MYSQL_CONNECT_FAIL;
         }
 
-        try { // todo limit 1
-            $sql = 'select Account, OrderStatus, ApplyDate, OrderID, UserID, ServerID from';
-            $sql .= ' jj_payorder where AliPay = :AliPay and OrderStatus = :OrderStatus and decMoney = :decMoney';
-            $sql .= ' and timestampdiff(second, ApplyDate, :PayDate) < :activeTime';
-
+        try {
             $sql = 'update jj_payorder set OrderStatus = :OrderStatus, PayDate = :PayDate';
             $sql .= ' where OrderID = :OrderID';
             $stmt = $pdo->prepare($sql);
