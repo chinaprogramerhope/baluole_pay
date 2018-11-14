@@ -41,26 +41,36 @@ class clsPay {
      * @return int
      */
     public static function createOrder($serverId, $account, $amount) {
-        // todo 防止短时间内大量重复发包
+        // 防止短时间内大量重复发包 todo 为什么只是用account做键
+        $redis = clsRedis::getInstance();
+        if (null === $redis) {
+            Log::error(__METHOD__ . ', ' . __LINE__ . ', redis connect fail');
+            return conErrorCode::ERR_REDIS_CONNECT_FAIL;
+        }
+        $key = conRedisKey::pay_create_order . $account;
+        if ($redis->exists($key)) {
+            Log::pay(__METHOD__ . ', ' . __LINE__ . ', too frequent!! serverId = '
+                . $serverId . ', account = ' . $account . ', amount = ' . $amount);
+            return conErrorCode::ERR_PAY_TOO_FREQUENT;
+        } else {
+            $ttl = 10;
+            $redis->setex($key, $ttl, 1);
+        }
 
-        // 获取支付地址
+        // 获取支付保账号
         $moneyLimit = 20 * 10000;
         $aliArr = daoPay::getAli($moneyLimit, 'JJ');
-
         // 随机选取一个支付宝账号
         $index = array_rand($aliArr, 1);
-        $aliAddress = $aliArr[$index]['Ali'];
+        $ali = $aliArr[$index]['Ali'];
         $moneyNow = $aliArr[0]['Money']; // todo 为什么是0 不是index; 转为float
-        Log::pay(__METHOD__ . ', 获得支付宝账号: ' . $aliAddress . ', 余额: ' . $moneyNow);
-
-        // 获取金额
-//        $amount = getPayDec($amount); // todo
+        Log::pay(__METHOD__ . ', 获得支付宝账号: ' . $ali . ', 余额: ' . $moneyNow);
 
         // 获取支付url
-        $payUrlArr = daoPay::getPayUrl($aliAddress, $amount); // todo 获取一条记录
-//        $payUrl = '';
-//        header('Location: ' . $payUrlArr); todo
-        Log::pay(__METHOD__ . ', payUrl: ' . $payUrlArr);
+        $payUrlArr = daoPay::getPayUrl($ali, $amount);
+        $payUrl = $payUrlArr[0]['PayUrl'];
+//        header('Location: ' . $payUrlArr); // todo 跳转, 打开支付宝
+        Log::pay(__METHOD__ . ', payUrl: ' . $payUrl);
 
         // 生成订单id
         $orderId = self::getOrderIdByPrefix('JJ');
@@ -68,9 +78,9 @@ class clsPay {
         // 生成订单
         $timeNow = date('Y-m-d H:i:s');
         $orderStatus = 0;
-        $userId = 102453; // todo delay 目前userId和gameId赋默认值
+        $userId = 102453; // todo 测试时userId和gameId赋默认值
         $gameId = 0;
-        return daoPay::insertOrder($orderId, $userId, $gameId, $account, $amount, $serverId, $aliAddress, $timeNow, $orderStatus);
+        return daoPay::insertOrder($orderId, $userId, $gameId, $account, $amount, $serverId, $ali, $timeNow, $orderStatus);
     }
 
     /**
@@ -78,7 +88,6 @@ class clsPay {
      * @param $serverId
      * @param $ali
      * @param $bills
-     * @return bool
      */
     public static function callback($serverId, $ali, $bills) {
         Log::pay(__METHOD__ . ', ' . __LINE__ . ', bills数量 = ' . count($bills));
@@ -295,6 +304,8 @@ class clsPay {
     public static function requestMidlayerRes($buf, $command, $host, $port) {
         //require_once(APPPATH . "third_party/proto/pb_proto_packet.php");
 //        $this->_require('pb_proto_pbclientgameserver');
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', buf = ' . $buf . ', json = ' . json_encode($buf));
         $pack = new Packet();
         $pack->set_version(0);
         $pack->set_command($command);
@@ -307,7 +318,9 @@ class clsPay {
 
         $request_stream = pack('H*', $buf_length) . $buf_pack;
 
+        // todo 这是阻塞式socket吧, 因为显示设为非阻塞后连不上了
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP) or die('Could not create socket');
+
         socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 20, 'usec' => 0));
         socket_set_option($socket, SOL_SOCKET, SO_SNDTIMEO, array('sec' => 20, 'usec' => 0));
 
@@ -319,11 +332,12 @@ class clsPay {
             return false;
         }
 
+        // test
+        Log::pay(__METHOD__ . ', ' . __LINE__ . ', req_stream = ' . $request_stream . ', json = ' . json_encode($request_stream));
         socket_write($socket, $request_stream);
 
         $read_length = socket_read($socket, 4);
-        // test
-        Log::pay('ok30, read_length = ' . $read_length);
+        Log::pay('ok30, read_length = ' . json_encode($read_length));
 
         if (strlen($read_length) <= 0) {
             $errorcode = socket_last_error();

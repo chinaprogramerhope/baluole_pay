@@ -21,5 +21,6 @@ class conErrorCode {
 
     // pay
     const ERR_PAY_FAIL = 300; // 支付失败
+    const ERR_PAY_TOO_FREQUENT = 301; // 支付(创建订单)太频繁
 
 }
