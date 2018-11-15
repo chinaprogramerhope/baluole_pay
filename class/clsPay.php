@@ -16,9 +16,9 @@ class clsPay {
     const ORDER_STATUS_NEW = 0; // 新订单
     const ORDER_STATUS_PAY = 1; // 已支付订单
 
-    const DISPATCH_COMMAND = 60002; // todo
+    const DISPATCH_COMMAND = 60002;
     const DISPATCH_SERVER_IP = '192.168.1.219';
-    const DISPATCH_SERVER_PORT = 10004;
+    const DISPATCH_SERVER_PORT = 10003;
 
     const enumAddScoreType_TableReward = 1;
     const enumAddScoreType_OnlineReward = 2;
@@ -80,7 +80,7 @@ class clsPay {
 
         // 生成订单
         $timeNow = date('Y-m-d H:i:s');
-        $userId = 102453; // todo 测试时userId和gameId赋默认值
+        $userId = 101401; // todo 测试时userId和gameId赋默认值
         $gameId = 0;
         return daoPay::insertOrder($orderId, $userId, $gameId, $account, $amount, $serverId, $ali,
             $timeNow, self::ORDER_STATUS_NEW);
@@ -278,19 +278,10 @@ class clsPay {
 
         $buf = $scoreoper->SerializeToString();
 
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok13');
-
         $ret = self::requestMidlayerRes($buf, self::DISPATCH_COMMAND, self::DISPATCH_SERVER_IP, self::DISPATCH_SERVER_PORT);
-
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok14');
 
         $rsp = new GameServerMiddleLayerServerScoreOperationRsp();
         $rsp->ParseFromString($ret);
-
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', ok15');
 
         $r = $rsp->returncode() === self::enumResultSucc ? true : false;
         Log::pay(__METHOD__ . ', ' . __LINE__ . ', ' . date('Y-m-d H:i:s')
@@ -307,10 +298,6 @@ class clsPay {
      * @return bool|null
      */
     public static function requestMidlayerRes($buf, $command, $host, $port) {
-        //require_once(APPPATH . "third_party/proto/pb_proto_packet.php");
-//        $this->_require('pb_proto_pbclientgameserver');
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', buf = ' . $buf . ', json = ' . json_encode($buf));
         $pack = new Packet();
         $pack->set_version(0);
         $pack->set_command($command);
@@ -323,7 +310,6 @@ class clsPay {
 
         $request_stream = pack('H*', $buf_length) . $buf_pack;
 
-        // todo 这是阻塞式socket吧, 因为显示设为非阻塞后连不上了
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP) or die('Could not create socket');
 
         socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => 20, 'usec' => 0));
@@ -337,14 +323,12 @@ class clsPay {
             return false;
         }
 
-        // test
-        Log::pay(__METHOD__ . ', ' . __LINE__ . ', req_stream = ' . $request_stream . ', json = ' . json_encode($request_stream));
-        socket_write($socket, $request_stream);
+        $len = socket_write($socket, $request_stream);
+//        Log::pay(__METHOD__ . ', ' . __LINE__ . ', write success!!, len = ' . $len);
+
 
         $read_length = socket_read($socket, 4);
-
-        // test
-        Log::pay('ok30, read_length = ' . json_encode($read_length));
+//        Log::pay('read_length = ' . json_encode($read_length));
 
         if (strlen($read_length) <= 0) {
             $errorcode = socket_last_error();
@@ -364,8 +348,7 @@ class clsPay {
         $ret = $response_pack->serialized();
         socket_close($socket);
 
-        // test
-        Log::pay('ok31, ret = ' . json_encode($ret));
+//        Log::pay('ret = ' . json_encode($ret));
         return $ret;
     }
 
