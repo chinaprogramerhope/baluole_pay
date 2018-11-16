@@ -5,16 +5,16 @@
  */
 
 
-require_once(dirname(__FILE__) . '/' . 'encoding/pb_base128.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_scalar.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_enum.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_bytes.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_string.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_int.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_bool.php');
-require_once(dirname(__FILE__) . '/' . 'type/pb_signed_int.php');
-require_once(dirname(__FILE__) . '/' . 'reader/pb_input_reader.php');
-require_once(dirname(__FILE__) . '/' . 'reader/pb_input_string_reader.php');
+require_once(dirname(__FILE__) . '/pb_base128.php');
+require_once(dirname(__FILE__) . '/pb_scalar.php');
+require_once(dirname(__FILE__) . '/pb_enum.php');
+require_once(dirname(__FILE__) . '/pb_bytes.php');
+require_once(dirname(__FILE__) . '/pb_string.php');
+require_once(dirname(__FILE__) . '/pb_int.php');
+require_once(dirname(__FILE__) . '/pb_bool.php');
+require_once(dirname(__FILE__) . '/pb_signed_int.php');
+require_once(dirname(__FILE__) . '/pb_input_reader.php');
+require_once(dirname(__FILE__) . '/pb_input_string_reader.php');
 
 /**
  * Abstract Message class
