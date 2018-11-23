@@ -17,7 +17,7 @@ class clsPay {
     const ORDER_STATUS_PAY = 1; // 已支付订单
 
     const DISPATCH_COMMAND = 60002;
-    const DISPATCH_SERVER_IP = '192.168.1.219';
+    const DISPATCH_SERVER_IP = '192.168.1.58';
     const DISPATCH_SERVER_PORT = 10003;
 
     const enumAddScoreType_TableReward = 1;
@@ -134,16 +134,16 @@ class clsPay {
                 continue;
             }
 
-            // 加金币
-            $gold = ceil($money); // todo 测试期间1：1
-            if (!self::addGold($userId, $gold)) {
-                Log::pay(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
-                    . $userId . ', gold = ' . $gold);
-                continue;
-            }
-
-            Log::pay(__METHOD__ . ', ' . __LINE__ . ', addGold success!! orderId = ' . $orderId
-                . ', userId = ' . $userId . ', gold = ' . $gold);
+//            // 加金币
+//            $gold = ceil($money); // todo 测试期间1：1
+//            if (!self::addGold($userId, $gold)) {
+//                Log::pay(__METHOD__ . ', ' . __LINE__ . ', scoreOperation fail, userId = '
+//                    . $userId . ', gold = ' . $gold);
+//                continue;
+//            }
+//
+//            Log::pay(__METHOD__ . ', ' . __LINE__ . ', addGold success!! orderId = ' . $orderId
+//                . ', userId = ' . $userId . ', gold = ' . $gold);
 
             // 更新订单状态
             $payTime = date('Y-m-d H:i:s', $payTime);
