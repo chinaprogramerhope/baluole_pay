@@ -7,7 +7,7 @@
  */
 require_once '../tool/Http.php';
 
-$url = 'http://192.168.1.202:8888/';
+$url = 'http://127.0.0.1:80/';
 $param = [
     'svc' => 'svcPay',
     'func' => 'callback',

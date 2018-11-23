@@ -31,7 +31,7 @@ if (isset($_REQUEST['param']) && !is_array($_REQUEST['param'])) {
     exit();
 }
 
-$_REQUEST['param'] = isset($_REQUEST['param']) ? $_REQUEST['param'] : $_REQUEST['param'];
+$_REQUEST['param'] = isset($_REQUEST['param']) ? $_REQUEST['param'] : [];
 
 $ret = (new $_REQUEST['svc'])->{$_REQUEST['func']}($_REQUEST['param']);
 
